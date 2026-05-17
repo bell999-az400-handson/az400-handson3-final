@@ -1,0 +1,170 @@
+# AZ-400 Hands-on Repository - Security-focused .gitignore
+
+# ========================================
+# セキュリティ関連（最重要）
+# ========================================
+# 環境変数ファイル
+.env
+.env.local
+.env.*.local
+*.env
+
+# Azure/認証情報
+*.publishsettings
+*.azurePubxml
+*.user
+*.suo
+
+# Personal Access Tokens
+*.pat
+
+# SSH Keys
+*.pem
+*.key
+id_rsa*
+*.ppk
+
+# Secrets and credentials
+secrets.json
+appsettings.*.json
+!appsettings.Development.json
+local.settings.json
+
+# ========================================
+# Azure DevOps / Build Artifacts
+# ========================================
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.log
+
+# Test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+packages/
+!**/packages/build/
+
+# Azure Artifacts
+artifacts/
+
+# ========================================
+# .NET / C#
+# ========================================
+*.dll
+*.exe
+*.pdb
+*.cache
+*.suo
+*.user
+project.lock.json
+project.fragment.lock.json
+
+# Visual Studio
+.vs/
+*.rsuser
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# ========================================
+# Node.js (フロントエンド用)
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# ========================================
+# Python
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+ENV/
+env/
+
+# ========================================
+# OS 固有
+# ========================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.nfs*
+
+# ========================================
+# IDE / Editor
+# ========================================
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# JetBrains
+*.swp
+*.swo
+
+# ========================================
+# Azure Functions
+# ========================================
+local.settings.json
+__blobstorage__/
+__queuestorage__/
+__azurite_db*__.json
+
+# ========================================
+# Terraform (インフラ用)
+# ========================================
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+
+# ========================================
+# 一時ファイル
+# ========================================
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+.history/
+
+Az400.Utils/bin/
+Az400.Utils/obj/
+Az400.Consumer/bin/
+Az400.Consumer/obj/
+
+# Credential provider install script
+install-artifacts-credprovider.ps1
+
+# Azure Artifacts projects
+Az400.Utils/bin/
+Az400.Utils/obj/
+Az400.Consumer/bin/
+Az400.Consumer/obj/
+*.nupkg
