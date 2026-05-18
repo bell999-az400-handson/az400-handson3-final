@@ -12,9 +12,6 @@ pr:
     include:
     - main
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 variables:
   buildConfiguration: 'Release'
   NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
@@ -27,6 +24,8 @@ stages:
   jobs:
   - job: BuildJob
     displayName: 'Build API'
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
     # .NET のセットアップ
     - task: UseDotNet@2
@@ -97,6 +96,8 @@ stages:
   condition: succeeded()
   jobs:
   - job: SecurityScan
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
     - script: |
         echo "Running security vulnerability scan..."
@@ -112,6 +113,8 @@ stages:
   jobs:
   - deployment: DeployDevJob
     displayName: 'Deploy to Dev Environment'
+    pool:
+      vmImage: 'ubuntu-latest'
     environment: 'Development'
     strategy:
       runOnce:
