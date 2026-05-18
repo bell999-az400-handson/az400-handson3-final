@@ -210,7 +210,7 @@ stages:
                 After=network.target
 
                 [Service]
-                Type=notify
+                Type=simple
                 WorkingDirectory=/var/www/backend
                 ExecStart=/usr/bin/dotnet /var/www/backend/backend.dll
                 Restart=always
@@ -227,9 +227,19 @@ stages:
                   sudo systemctl enable backend.service
                 fi
                 
-                # Application Insights Connection String を設定
-                sudo mkdir -p /etc/backend
-                echo "APPLICATIONINSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show --app az400-appinsights --resource-group rg-az400-handson3 --query connectionString -o tsv)" | sudo tee /etc/backend/appsettings.json
+                # Application Insights Connection String を環境変数として設定
+                # Managed Identity で Azure CLI にログイン
+                az login --identity --allow-no-subscriptions
+                
+                # Application Insights の接続文字列を取得して systemd override に設定
+                CONN_STRING=$(az monitor app-insights component show --app az400-appinsights --resource-group rg-az400-handson3 --query connectionString -o tsv)
+                sudo mkdir -p /etc/systemd/system/backend.service.d
+                sudo tee /etc/systemd/system/backend.service.d/override.conf > /dev/null <<EOF
+                [Service]
+                Environment=APPLICATIONINSIGHTS_CONNECTION_STRING=$CONN_STRING
+                EOF
+                
+                sudo systemctl daemon-reload
                 
                 # サービスを起動
                 sudo systemctl restart backend.service
