@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <!-- AZ-400 Hands-on Exercise: Backend API for User Management -->
   </PropertyGroup>
 
   <ItemGroup>
