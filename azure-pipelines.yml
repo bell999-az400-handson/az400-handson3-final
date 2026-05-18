@@ -109,38 +109,90 @@ stages:
       displayName: 'Vulnerability Scan'
 
 # ステージ 3: デプロイ（Dev環境）
+# 注意: デプロイ前に az400-vm が起動していることを確認してください
+# az vm start --resource-group rg-az400-handson3 --name az400-vm
 - stage: DeployDev
   displayName: 'Deploy to Dev'
   dependsOn: Security
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
-  - job: DeployDevJob
+  - deployment: DeployDevJob
     displayName: 'Deploy to Dev Environment'
     pool:
       vmImage: 'ubuntu-latest'
-    steps:
-    - task: DownloadBuildArtifacts@1
-      displayName: 'Download Build Artifacts'
-      inputs:
-        buildType: 'current'
-        downloadType: 'single'
-        artifactName: 'drop'
-        downloadPath: '$(System.ArtifactsDirectory)'
-    
-    - script: |
-        echo "========================================="
-        echo "Simulating deployment to Dev environment"
-        echo "========================================="
-        echo "Target: Azure App Service (az400-userapi-dev)"
-        echo "Runtime: .NET 8.0"
-        echo "Package: $(System.ArtifactsDirectory)/drop/*.zip"
-        echo ""
-        echo "Deployment steps:"
-        echo "  1. Stop web app"
-        echo "  2. Deploy new version"
-        echo "  3. Start web app"
-        echo "  4. Verify health endpoint"
-        echo ""
-        echo "✅ Deployment completed successfully (simulated)"
-        echo "========================================="
-      displayName: 'Simulate Azure Web App Deployment'
+    environment: 'Development'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@1
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'drop'
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          # アーティファクトを解凍
+          - task: ExtractFiles@1
+            displayName: 'Extract Published Files'
+            inputs:
+              archiveFilePatterns: '$(System.ArtifactsDirectory)/drop/*.zip'
+              destinationFolder: '$(System.ArtifactsDirectory)/extracted'
+          
+          # SSH経由でVMにファイルをコピー
+          - task: CopyFilesOverSSH@0
+            displayName: 'Copy Files to VM'
+            inputs:
+              sshEndpoint: 'az400-vm-ssh'
+              sourceFolder: '$(System.ArtifactsDirectory)/extracted'
+              contents: '**'
+              targetFolder: '/var/www/backend'
+              cleanTargetFolder: true
+              overwrite: true
+          
+          # VMでアプリケーションを再起動
+          - task: SSH@0
+            displayName: 'Restart Application on VM'
+            inputs:
+              sshEndpoint: 'az400-vm-ssh'
+              runOptions: 'inline'
+              inline: |
+                # アプリケーションを停止（既存のプロセスがあれば）
+                sudo pkill -f "dotnet.*backend.dll" || true
+                
+                # systemd サービスファイルを作成（初回のみ）
+                if [ ! -f /etc/systemd/system/backend.service ]; then
+                  sudo tee /etc/systemd/system/backend.service > /dev/null <<EOF
+                [Unit]
+                Description=Backend API Service
+                After=network.target
+
+                [Service]
+                Type=notify
+                WorkingDirectory=/var/www/backend
+                ExecStart=/usr/bin/dotnet /var/www/backend/backend.dll
+                Restart=always
+                RestartSec=10
+                User=azureuser
+                Environment=ASPNETCORE_ENVIRONMENT=Production
+                Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
+
+                [Install]
+                WantedBy=multi-user.target
+                EOF
+                
+                  sudo systemctl daemon-reload
+                  sudo systemctl enable backend.service
+                fi
+                
+                # Application Insights Connection String を設定
+                sudo mkdir -p /etc/backend
+                echo "APPLICATIONINSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show --app az400-appinsights --resource-group rg-az400-handson3 --query connectionString -o tsv)" | sudo tee /etc/backend/appsettings.json
+                
+                # サービスを起動
+                sudo systemctl restart backend.service
+                
+                # ステータス確認
+                sleep 3
+                sudo systemctl status backend.service --no-pager
+              readyTimeout: '20000'
