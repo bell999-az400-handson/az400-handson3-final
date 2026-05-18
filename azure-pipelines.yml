@@ -113,10 +113,53 @@ stages:
 - stage: DeployDev
   displayName: 'Deploy to Dev'
   dependsOn: Security
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
+  # 条件チェックジョブ（常に実行してスキップ理由を表示）
+  - job: CheckDeploymentConditions
+    displayName: 'Check Deployment Conditions'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        echo "=========================================="
+        echo "🔍 Deployment Condition Check"
+        echo "=========================================="
+        echo ""
+        echo "Current Branch:  $(Build.SourceBranch)"
+        echo "Required Branch: refs/heads/main"
+        echo ""
+        echo "Previous Stage:  Security"
+        echo "Previous Status: $(Agent.JobStatus)"
+        echo ""
+        
+        # ブランチ条件のチェック
+        if [ "$(Build.SourceBranch)" = "refs/heads/main" ]; then
+          echo "✅ Branch Condition: PASSED"
+          echo "   → Deployment will proceed"
+        else
+          echo "⊘ Branch Condition: NOT MET"
+          echo "   → Deployment will be SKIPPED"
+          echo ""
+          echo "📌 Reason:"
+          echo "   This is a Pull Request or feature branch"
+          echo "   Deployment only runs when code is merged to 'main' branch"
+          echo ""
+          echo "📋 What happens:"
+          echo "   - Build stage: ✅ Executed"
+          echo "   - Security stage: ✅ Executed"
+          echo "   - Deploy stage: ⊘ SKIPPED (by design)"
+        fi
+        
+        echo ""
+        echo "=========================================="
+      displayName: 'Display Deployment Conditions'
+      condition: always()
+  
+  # 実際のデプロイジョブ（main ブランチのみ）
   - deployment: DeployDevJob
     displayName: 'Deploy to Dev Environment'
+    dependsOn: CheckDeploymentConditions
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     pool:
       vmImage: 'ubuntu-latest'
     environment: 'Development'
