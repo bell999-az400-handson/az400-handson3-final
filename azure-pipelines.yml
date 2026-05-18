@@ -5,6 +5,8 @@ stages:
 - stage: Build
   jobs:
   - job: Build
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
     - script: echo "Build stage"
 
@@ -12,6 +14,8 @@ stages:
   dependsOn: Build
   jobs:
   - job: Test
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
     - script: echo "Test stage"
 
@@ -19,5 +23,7 @@ stages:
   dependsOn: Test
   jobs:
   - job: Deploy
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
     - script: echo "Deploy to Dev"
