@@ -29,16 +29,16 @@ stages:
     steps:
     # .NET のセットアップ
     - task: UseDotNet@2
-      displayName: 'Use .NET 10.0'
+      displayName: 'Use .NET 8.0'
       inputs:
-        version: '10.0.x'
+        version: '8.0.x'
     
     # NuGet キャッシュ
     - task: Cache@2
       displayName: 'Cache NuGet Packages'
       continueOnError: true
       inputs:
-        key: 'nuget | "$(Agent.OS)" | backend/backend/backend.csproj, backend/backend/packages.lock.json'
+        key: 'nuget | "$(Agent.OS)" | backend/backend.csproj, backend/packages.lock.json'
         restoreKeys: |
           nuget | "$(Agent.OS)"
         path: $(NUGET_PACKAGES)
@@ -48,14 +48,14 @@ stages:
       displayName: 'Restore Dependencies'
       inputs:
         command: 'restore'
-        projects: 'backend/backend/backend.csproj'
+        projects: 'backend/backend.csproj'
     
     # ビルド
     - task: DotNetCoreCLI@2
       displayName: 'Build Solution'
       inputs:
         command: 'build'
-        projects: 'backend/backend/backend.csproj'
+        projects: 'backend/backend.csproj'
         arguments: '--configuration $(buildConfiguration) --no-restore'
     
     # テスト（テストプロジェクトがある場合）
@@ -81,7 +81,7 @@ stages:
       inputs:
         command: 'publish'
         publishWebProjects: false
-        projects: 'backend/backend/backend.csproj'
+        projects: 'backend/backend.csproj'
         arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
         zipAfterPublish: true
     
@@ -105,7 +105,7 @@ stages:
     - script: |
         echo "Running security vulnerability scan..."
         # 実際には OWASP Dependency Check などを実行
-        dotnet list backend/backend/backend.csproj package --vulnerable
+        dotnet list backend/backend.csproj package --vulnerable
       displayName: 'Vulnerability Scan'
 
 # ステージ 3: デプロイ（Dev環境）
