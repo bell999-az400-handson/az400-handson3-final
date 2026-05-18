@@ -267,3 +267,114 @@ stages:
                 sleep 3
                 sudo systemctl status backend.service --no-pager
               readyTimeout: '20000'
+
+# ステージ 4: 負荷テスト
+- stage: LoadTest
+  displayName: 'Load Testing'
+  dependsOn: DeployDev
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - job: RunLoadTest
+    displayName: 'Run Load Test'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    # Azure CLI のセットアップ
+    - task: AzureCLI@2
+      displayName: 'Run Azure Load Test'
+      inputs:
+        azureSubscription: 'Azure-Service-Connection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "=========================================="
+          echo "🚀 Starting Load Test Execution"
+          echo "=========================================="
+          
+          # Azure Load Testing 拡張機能のインストール
+          az extension add --name load --yes || az extension update --name load --yes
+          
+          # Load Test の実行（JMeter スクリプトを使用）
+          echo "📊 Running load test with JMeter script..."
+          
+          # テストの実行（既存のテストを実行、または新規作成）
+          TEST_ID=$(az load test list \
+            --load-test-resource az400-loadtest \
+            --resource-group rg-az400-handson3 \
+            --query "[?displayName=='users-api-load-test'].testId" -o tsv)
+          
+          if [ -z "$TEST_ID" ]; then
+            echo "⚠️  Test 'users-api-load-test' not found. Please create it manually first."
+            echo "   Navigate to: Azure Portal → az400-loadtest → Tests → Create"
+            exit 1
+          fi
+          
+          echo "✅ Found test ID: $TEST_ID"
+          
+          # テストの実行
+          echo "🏃 Starting test run..."
+          RUN_ID=$(az load test-run create \
+            --load-test-resource az400-loadtest \
+            --resource-group rg-az400-handson3 \
+            --test-id "$TEST_ID" \
+            --display-name "Pipeline Run $(Build.BuildNumber)" \
+            --description "Automated load test from Azure Pipeline" \
+            --query "testRunId" -o tsv)
+          
+          echo "✅ Test run started: $RUN_ID"
+          
+          # テストの完了を待機
+          echo "⏳ Waiting for test completion..."
+          MAX_WAIT=600  # 10分
+          ELAPSED=0
+          
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            STATUS=$(az load test-run show \
+              --load-test-resource az400-loadtest \
+              --resource-group rg-az400-handson3 \
+              --test-run-id "$RUN_ID" \
+              --query "status" -o tsv)
+            
+            echo "   Current status: $STATUS (${ELAPSED}s elapsed)"
+            
+            if [ "$STATUS" = "DONE" ] || [ "$STATUS" = "FAILED" ]; then
+              break
+            fi
+            
+            sleep 30
+            ELAPSED=$((ELAPSED + 30))
+          done
+          
+          # 結果の取得
+          echo ""
+          echo "=========================================="
+          echo "📈 Load Test Results"
+          echo "=========================================="
+          
+          az load test-run show \
+            --load-test-resource az400-loadtest \
+            --resource-group rg-az400-handson3 \
+            --test-run-id "$RUN_ID" \
+            --query "{Status:status, StartTime:startDateTime, EndTime:endDateTime, VirtualUsers:testRunStatistics.totalRequests}" -o table
+          
+          # メトリクスの取得
+          echo ""
+          echo "🎯 Performance Metrics:"
+          az load test-run metrics list \
+            --load-test-resource az400-loadtest \
+            --resource-group rg-az400-handson3 \
+            --test-run-id "$RUN_ID" \
+            --metric-namespace LoadTestRunMetrics \
+            --metric-name response_time_ms \
+            --aggregation Average \
+            --query "value[].{Time:timeStamp, AvgResponseTime:average}" -o table | head -20
+          
+          # 失敗チェック
+          if [ "$STATUS" = "FAILED" ]; then
+            echo "##vso[task.logissue type=error]Load test failed!"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ Load test completed successfully"
+          echo "=========================================="
