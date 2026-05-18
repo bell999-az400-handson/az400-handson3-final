@@ -97,15 +97,34 @@ stages:
   dependsOn: Build
   condition: succeeded()
   jobs:
-  - job: Test
+  - job: SecurityScan
+    displayName: 'Security Vulnerability Scan'
     pool:
       vmImage: 'ubuntu-latest'
     steps:
+    # .NET SDK のインストール（一貫性のため）
+    - task: UseDotNet@2
+      displayName: 'Install .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '8.0.x'
+    
+    # 脆弱性スキャン（推移的な依存関係を含む）
     - script: |
-        echo "Running security vulnerability scan..."
-        # 実際には OWASP Dependency Check などを実行
-        dotnet list backend/backend.csproj package --vulnerable
-      displayName: 'Vulnerability Scan'
+        echo "Running comprehensive security vulnerability scan..."
+        echo "Checking for vulnerable packages (including transitive dependencies)..."
+        
+        # 脆弱性をチェック
+        dotnet list backend/backend.csproj package --vulnerable --include-transitive
+        
+        # 脆弱性が見つかった場合はビルドを失敗させる
+        if dotnet list backend/backend.csproj package --vulnerable --include-transitive 2>&1 | grep -q "has the following vulnerable packages"; then
+          echo "##vso[task.logissue type=error]Vulnerable packages detected! Please update dependencies."
+          exit 1
+        else
+          echo "✅ No vulnerable packages found."
+        fi
+      displayName: 'Vulnerability Scan (Include Transitive)'
 
 # ステージ 3: デプロイ（Dev環境）
 # 注意: デプロイ前に az400-vm が起動していることを確認してください
