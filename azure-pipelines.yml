@@ -22,8 +22,7 @@ stages:
 - stage: Build
   displayName: 'Build and Test'
   jobs:
-  - job: BuildJob
-    displayName: 'Build API'
+  - job: Build
     pool:
       vmImage: 'ubuntu-latest'
     steps:
@@ -95,7 +94,7 @@ stages:
   dependsOn: Build
   condition: succeeded()
   jobs:
-  - job: SecurityScan
+  - job: Test
     pool:
       vmImage: 'ubuntu-latest'
     steps:
@@ -111,27 +110,8 @@ stages:
   dependsOn: Security
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
-  - deployment: DeployDevJob
-    displayName: 'Deploy to Dev Environment'
+  - job: Deploy
     pool:
       vmImage: 'ubuntu-latest'
-    environment: 'Development'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: DownloadBuildArtifacts@1
-            inputs:
-              buildType: 'current'
-              downloadType: 'single'
-              artifactName: 'drop'
-              downloadPath: '$(System.ArtifactsDirectory)'
-          
-          - task: AzureWebApp@1
-            displayName: 'Deploy to Azure Web App'
-            inputs:
-              azureSubscription: 'AzureServiceConnection'
-              appType: 'webAppLinux'
-              appName: 'az400-userapi-dev'
-              package: '$(System.ArtifactsDirectory)/drop/*.zip'
-              runtimeStack: 'DOTNETCORE|8.0'
+    steps:
+    - script: echo "Deploy to Dev"
