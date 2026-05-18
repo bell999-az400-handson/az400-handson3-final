@@ -1,26 +1,114 @@
+# azure-pipelines.yml - Complete CI/CD Pipeline
 trigger:
-- main
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - backend/**
+
+pr:
+  branches:
+    include:
+    - main
+
+variables:
+  buildConfiguration: 'Release'
+  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+  # System.Debug: true  # デバッグ時のみ有効化
 
 stages:
+# ステージ 1: ビルドとテスト
 - stage: Build
+  displayName: 'Build and Test'
   jobs:
   - job: Build
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - script: echo "Build stage"
+    # .NET のセットアップ
+    - task: UseDotNet@2
+      displayName: 'Use .NET 8.0'
+      inputs:
+        version: '8.0.x'
+    
+    # NuGet キャッシュ
+    - task: Cache@2
+      displayName: 'Cache NuGet Packages'
+      inputs:
+        key: 'nuget | "$(Agent.OS)" | **/packages.lock.json'
+        restoreKeys: |
+          nuget | "$(Agent.OS)"
+        path: $(NUGET_PACKAGES)
+    
+    # 依存関係の復元
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore Dependencies'
+      inputs:
+        command: 'restore'
+        projects: 'backend/**/*.csproj'
+    
+    # ビルド
+    - task: DotNetCoreCLI@2
+      displayName: 'Build Solution'
+      inputs:
+        command: 'build'
+        projects: 'backend/**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-restore'
+    
+    # テスト（テストプロジェクトがある場合）
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Tests'
+      inputs:
+        command: 'test'
+        projects: 'backend/**/*Tests.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage"'
+    
+    # コードカバレッジレポート
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish Code Coverage'
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+    
+    # 発行
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish Application'
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: 'backend/backend.csproj'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+        zipAfterPublish: true
+    
+    # アーティファクトの発行
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Build Artifacts'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
 
-- stage: Test
+# ステージ 2: セキュリティスキャン
+- stage: Security
+  displayName: 'Security Scan'
   dependsOn: Build
+  condition: succeeded()
   jobs:
   - job: Test
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - script: echo "Test stage"
+    - script: |
+        echo "Running security vulnerability scan..."
+        # 実際には OWASP Dependency Check などを実行
+        dotnet list backend/backend.csproj package --vulnerable
+      displayName: 'Vulnerability Scan'
 
-- stage: Deploy_Dev
-  dependsOn: Test
+# ステージ 3: デプロイ（Dev環境）
+- stage: DeployDev
+  displayName: 'Deploy to Dev'
+  dependsOn: Security
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
   - job: Deploy
     pool:

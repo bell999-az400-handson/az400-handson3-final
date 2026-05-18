@@ -1,0 +1,11 @@
+Work Item Type,Title,Description,State,Priority,Tags,Assigned To,Area Path,Iteration Path
+Epic,Microservices Application Development,フロントエンドとバックエンドのマイクロサービス開発,New,2,AZ-400;Microservices,,az400-handson3-final,az400-handson3-final
+Feature,Backend API Development,バックエンドAPIの開発とテスト,New,1,Backend;API,,az400-handson3-final,az400-handson3-final
+Feature,Frontend UI Development,フロントエンドUIの開発,New,2,Frontend;React,,az400-handson3-final,az400-handson3-final
+Feature,CI/CD Pipeline Setup,CI/CDパイプラインのセットアップ,New,1,Pipeline;DevOps,,az400-handson3-final,az400-handson3-final
+Feature,Monitoring and Alerts,監視とアラートの設定,New,2,Monitoring;Observability,,az400-handson3-final,az400-handson3-final
+User Story,Create User API endpoint,User APIエンドポイントの作成 - モデル、DbContext、コントローラーを実装,New,1,Backend;API;AB#612,,az400-handson3-final,az400-handson3-final
+User Story,Implement authentication,認証機能の実装,New,1,Backend;Security;AB#613,,az400-handson3-final,az400-handson3-final
+User Story,Create login page,ログインページの作成,New,2,Frontend;UI;AB#614,,az400-handson3-final,az400-handson3-final
+User Story,Setup build pipeline,ビルドパイプラインのセットアップ,New,1,Pipeline;CI;AB#615,,az400-handson3-final,az400-handson3-final
+User Story,Configure Application Insights,Application Insightsの設定とテレメトリ送信,New,2,Monitoring;AppInsights;AB#616,,az400-handson3-final,az400-handson3-final
