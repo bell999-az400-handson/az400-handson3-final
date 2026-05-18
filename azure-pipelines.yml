@@ -59,21 +59,22 @@ stages:
         arguments: '--configuration $(buildConfiguration) --no-restore'
     
     # テスト（テストプロジェクトがある場合）
-    - task: DotNetCoreCLI@2
-      displayName: 'Run Tests'
-      continueOnError: true
-      inputs:
-        command: 'test'
-        projects: 'backend/**/*Tests.csproj'
-        arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage"'
+    # 現在テストプロジェクトは存在しないため、コメントアウト
+    # - task: DotNetCoreCLI@2
+    #   displayName: 'Run Tests'
+    #   continueOnError: true
+    #   inputs:
+    #     command: 'test'
+    #     projects: 'backend/**/*Tests.csproj'
+    #     arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage"'
     
     # コードカバレッジレポート
-    - task: PublishCodeCoverageResults@2
-      displayName: 'Publish Code Coverage'
-      continueOnError: true
-      inputs:
-        codeCoverageTool: 'Cobertura'
-        summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+    # - task: PublishCodeCoverageResults@2
+    #   displayName: 'Publish Code Coverage'
+    #   continueOnError: true
+    #   inputs:
+    #     codeCoverageTool: 'Cobertura'
+    #     summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
     
     # 発行
     - task: DotNetCoreCLI@2
