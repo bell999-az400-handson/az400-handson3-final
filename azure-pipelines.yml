@@ -22,8 +22,7 @@ stages:
 - stage: Build
   displayName: 'Build and Test'
   jobs:
-  - job: BuildJob
-    displayName: 'Build API'
+  - job: Build
     pool:
       vmImage: 'ubuntu-latest'
     steps:
@@ -98,7 +97,7 @@ stages:
   dependsOn: Build
   condition: succeeded()
   jobs:
-  - job: SecurityScan
+  - job: Test
     pool:
       vmImage: 'ubuntu-latest'
     steps:
