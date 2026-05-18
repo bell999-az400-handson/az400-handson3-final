@@ -20,13 +20,27 @@ public class UsersController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet]
-    public ActionResult<IEnumerable<User>> GetUsers()
+[HttpGet]
+public ActionResult<IEnumerable<User>> GetUsers(
+    [FromQuery] int page = 1, 
+    [FromQuery] int pageSize = 10)
+{
+    _telemetryClient.TrackEvent("GetUsers", new Dictionary<string, string>
     {
-        _telemetryClient.TrackEvent("GetUsers");
-        _logger.LogInformation("Getting all users");
-        return Ok(_context.Users.ToList());
-    }
+        { "Page", page.ToString() },
+        { "PageSize", pageSize.ToString() }
+    });
+
+    var users = _context.Users
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
+
+    _logger.LogInformation("Retrieved {Count} users (Page {Page}, PageSize {PageSize})", 
+        users.Count, page, pageSize);
+
+    return Ok(users);
+}
 
     [HttpGet("{id}")]
     public ActionResult<User> GetUser(int id)
