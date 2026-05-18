@@ -38,7 +38,7 @@ stages:
       displayName: 'Cache NuGet Packages'
       continueOnError: true
       inputs:
-        key: 'nuget | "$(Agent.OS)" | backend/backend.csproj, backend/packages.lock.json'
+        key: 'nuget | "$(Agent.OS)" | backend/backend.csproj, backend.Tests/backend.Tests.csproj, backend/packages.lock.json'
         restoreKeys: |
           nuget | "$(Agent.OS)"
         path: $(NUGET_PACKAGES)
@@ -48,14 +48,14 @@ stages:
       displayName: 'Restore Dependencies'
       inputs:
         command: 'restore'
-        projects: 'backend/backend.csproj'
+        projects: '**/*.csproj'
     
     # ビルド
     - task: DotNetCoreCLI@2
       displayName: 'Build Solution'
       inputs:
         command: 'build'
-        projects: 'backend/backend.csproj'
+        projects: '**/*.csproj'
         arguments: '--configuration $(buildConfiguration) --no-restore'
     
     # テスト
